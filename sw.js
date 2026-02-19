@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stage-star-v3';
+const CACHE_NAME = 'stage-star-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -41,6 +41,25 @@ self.addEventListener('fetch', (event) => {
 
   // Only handle GET requests
   if (request.method !== 'GET') return;
+
+  // For page navigations: network-first so UI updates are seen promptly.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', clone));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cachedIndex = await caches.match('./index.html');
+          return cachedIndex || caches.match(request);
+        })
+    );
+    return;
+  }
 
   // For CDN resources: cache-first
   const isCDN = CDN_URLS.some((url) => request.url.startsWith(url));
