@@ -1,7 +1,7 @@
 {
-  "name": "Stage Star — Musical Rehearsal",
+  "name": "Stage Star — Performance Rehearsal",
   "short_name": "Stage Star",
-  "description": "Practice your musical theatre songs!",
+  "description": "Practice your performance songs!",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#fdf6ff",
@@ -14,3 +14,4 @@
     }
   ]
 }
+

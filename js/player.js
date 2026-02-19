@@ -1,4 +1,4 @@
-import { getSong, getMusical } from './db.js';
+import { getSong, getPerformance } from './db.js';
 import { navigateTo } from './app.js';
 import { showSongs } from './songs.js';
 
@@ -50,9 +50,6 @@ const waveformAccompEl = document.getElementById('waveform-accomp');
 
 // Script
 const btnPlayerScript = document.getElementById('btn-player-script');
-const modalScript = document.getElementById('modal-script');
-const scriptViewer = document.getElementById('script-viewer');
-const btnCloseScript = document.getElementById('btn-close-script');
 
 // Loop
 const btnLoopStart = document.getElementById('btn-loop-start');
@@ -155,8 +152,8 @@ export async function loadSong(songId) {
   songTitle.textContent = song.name;
 
   // Set up script button
-  const musical = await getMusical(song.musicalId);
-  if (musical?.scriptPdf) {
+  const performance = await getPerformance(song.performanceId);
+  if (performance?.scriptPdf) {
     btnPlayerScript.classList.remove('hidden');
     btnPlayerScript.dataset.scriptPage = song.scriptPage || '1';
   } else {
@@ -493,32 +490,28 @@ export function destroyPlayer() {
 
 /* ── Script Viewer ───────────────────────────────────────── */
 
-let scriptObjectUrl = null;
-
 async function openScriptFromPlayer() {
-  if (!currentSongData?.musicalId) return;
-  const musical = await getMusical(currentSongData.musicalId);
-  if (!musical?.scriptPdf) return;
+  if (!currentSongData?.performanceId) return;
 
-  const blob = musical.scriptPdf instanceof Blob
-    ? musical.scriptPdf
-    : new Blob([musical.scriptPdf], { type: 'application/pdf' });
+  // Open the tab immediately in the user gesture to avoid popup blocking.
+  const scriptTab = window.open('about:blank', '_blank');
+  const performance = await getPerformance(currentSongData.performanceId);
+  if (!performance?.scriptPdf) {
+    if (scriptTab) scriptTab.close();
+    return;
+  }
 
-  // Clean up previous URL
-  if (scriptObjectUrl) URL.revokeObjectURL(scriptObjectUrl);
-  scriptObjectUrl = URL.createObjectURL(blob);
+  const blob = performance.scriptPdf instanceof Blob
+    ? performance.scriptPdf
+    : new Blob([performance.scriptPdf], { type: 'application/pdf' });
 
+  const scriptObjectUrl = URL.createObjectURL(blob);
   const page = currentSongData.scriptPage || 1;
-  scriptViewer.setAttribute('src', scriptObjectUrl + '#page=' + page);
-  modalScript.classList.remove('hidden');
-}
-
-function closeScriptViewer() {
-  modalScript.classList.add('hidden');
-  scriptViewer.removeAttribute('src');
-  if (scriptObjectUrl) {
-    URL.revokeObjectURL(scriptObjectUrl);
-    scriptObjectUrl = null;
+  const scriptUrl = `${scriptObjectUrl}#page=${page}`;
+  if (scriptTab) {
+    scriptTab.location.href = scriptUrl;
+  } else {
+    window.open(scriptUrl, '_blank');
   }
 }
 
@@ -538,14 +531,10 @@ export function initPlayer() {
 
   // Script viewer from player
   btnPlayerScript.addEventListener('click', openScriptFromPlayer);
-  btnCloseScript.addEventListener('click', closeScriptViewer);
-  modalScript.addEventListener('click', (e) => {
-    if (e.target === modalScript) closeScriptViewer();
-  });
 
   btnBackSongs.addEventListener('click', () => {
-    if (currentSongData?.musicalId) {
-      showSongs(currentSongData.musicalId);
+    if (currentSongData?.performanceId) {
+      showSongs(currentSongData.performanceId);
     } else {
       navigateTo('home');
     }
@@ -572,3 +561,4 @@ export function initPlayer() {
     }
   });
 }
+

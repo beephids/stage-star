@@ -1,4 +1,4 @@
-import { initDB } from './db.js';
+import { initDB, seedDemoPerformanceIfEmpty } from './db.js';
 import { initSongs, showHome, showSongs } from './songs.js';
 import { initUpload } from './upload.js';
 import { initPlayer, destroyPlayer } from './player.js';
@@ -48,6 +48,11 @@ async function init() {
 
   try {
     await initDB();
+    try {
+      await seedDemoPerformanceIfEmpty();
+    } catch (seedErr) {
+      console.error('Failed to seed demo performance:', seedErr);
+    }
     initSongs();
     initUpload();
     initPlayer();
@@ -71,3 +76,4 @@ if ('serviceWorker' in navigator) {
 }
 
 init();
+

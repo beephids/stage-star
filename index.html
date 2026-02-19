@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#7c3aed">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Stage Star — Musical Rehearsal</title>
+  <title>Stage Star — Performance Rehearsal</title>
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,26 +15,27 @@
 </head>
 <body>
   <div id="app">
-    <!-- Screen: Home / Musical Picker -->
+    <!-- Screen: Home / Performance Picker -->
     <div id="screen-home" class="screen active">
       <header class="app-header">
         <h1 class="app-title">🎭 Stage Star</h1>
         <p class="app-subtitle">Pick your show!</p>
       </header>
-      <div id="musicals-grid" class="card-grid"></div>
-      <button id="btn-add-musical" class="btn btn-big btn-add" title="Add a new musical">
+      <div id="performances-grid" class="card-grid"></div>
+      <button id="btn-add-performance" class="btn btn-big btn-add" title="Add a new performance">
         <span class="btn-icon">＋</span>
-        <span class="btn-label">Add Musical</span>
+        <span class="btn-label">Add Performance</span>
       </button>
     </div>
 
     <!-- Screen: Song Picker -->
     <div id="screen-songs" class="screen">
       <header class="app-header">
-        <button id="btn-back-home" class="btn btn-back" title="Back to musicals">◀</button>
-        <h1 id="musical-title" class="app-title"></h1>
+        <button id="btn-back-home" class="btn btn-back" title="Back to performances">◀</button>
+        <h1 id="performance-title" class="app-title"></h1>
         <button id="btn-view-script" class="btn btn-accent" title="View Script">📜 Script</button>
-        <button id="btn-edit-musical" class="btn btn-small btn-edit" title="Edit musical">⚙️</button>
+        <button id="btn-delete-performance" class="btn btn-small btn-danger" title="Delete performance">🗑️</button>
+        <button id="btn-edit-performance" class="btn btn-small btn-edit" title="Edit performance">⚙️</button>
       </header>
       <div id="songs-grid" class="card-grid"></div>
     </div>
@@ -79,12 +80,12 @@
     <div id="screen-upload" class="screen">
       <header class="app-header">
         <button id="btn-back-upload" class="btn btn-back" title="Back">◀</button>
-        <h1 class="app-title">🎬 Set Up Musical</h1>
+        <h1 class="app-title">🎬 Set Up Performance</h1>
       </header>
       <div class="upload-container">
         <div class="upload-step" id="upload-step-name">
-          <label class="upload-label" for="input-musical-name">Musical Name</label>
-          <input type="text" id="input-musical-name" class="input-text" placeholder="e.g. Raise Your Voice" autocomplete="off">
+          <label class="upload-label" for="input-performance-name">Performance Name</label>
+          <input type="text" id="input-performance-name" class="input-text" placeholder="e.g. Raise Your Voice" autocomplete="off">
         </div>
 
         <div class="upload-step" id="upload-step-script">
@@ -130,7 +131,7 @@
         </div>
 
         <div class="upload-actions">
-          <button id="btn-save-musical" class="btn btn-big btn-save" disabled>💾 Save Musical</button>
+          <button id="btn-save-performance" class="btn btn-big btn-save" disabled>💾 Save Performance</button>
         </div>
       </div>
     </div>
@@ -153,3 +154,4 @@
   <script src="js/app.js" type="module"></script>
 </body>
 </html>
+

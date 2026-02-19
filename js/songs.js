@@ -1,25 +1,22 @@
-import { getMusicals, getSongsByMusical, getMusical, deleteMusical, deleteSong } from './db.js';
+import { getPerformances, getSongsByPerformance, getPerformance, deletePerformance, deleteSong } from './db.js';
 import { navigateTo, showLoading, hideLoading } from './app.js';
 import { openUploadNew, openUploadEdit } from './upload.js';
 import { loadSong } from './player.js';
 
 /* ── State ───────────────────────────────────────────────── */
 
-let currentMusicalId = null;
-let isEditing = false;
+let currentPerformanceId = null;
 
 /* ── DOM Refs ────────────────────────────────────────────── */
 
-const musicalsGrid = document.getElementById('musicals-grid');
+const performancesGrid = document.getElementById('performances-grid');
 const songsGrid = document.getElementById('songs-grid');
-const musicalTitle = document.getElementById('musical-title');
-const btnAddMusical = document.getElementById('btn-add-musical');
+const performanceTitle = document.getElementById('performance-title');
+const btnAddPerformance = document.getElementById('btn-add-performance');
 const btnBackHome = document.getElementById('btn-back-home');
 const btnViewScript = document.getElementById('btn-view-script');
-const btnEditMusical = document.getElementById('btn-edit-musical');
-const modalScript = document.getElementById('modal-script');
-const btnCloseScript = document.getElementById('btn-close-script');
-const scriptViewer = document.getElementById('script-viewer');
+const btnDeletePerformance = document.getElementById('btn-delete-performance');
+const btnEditPerformance = document.getElementById('btn-edit-performance');
 
 /* ── HTML Escape ─────────────────────────────────────────── */
 
@@ -29,50 +26,50 @@ function esc(str) {
   return el.innerHTML;
 }
 
-/* ── Musical icons — cycle through fun emojis ────────────── */
+/* ── Performance icons — cycle through fun emojis ────────────── */
 
-const musicalIcons = ['🎭', '🎬', '🎪', '🎶', '🌟', '🎤', '🎵', '💫'];
+const performanceIcons = ['🎭', '🎬', '🎪', '🎶', '🌟', '🎤', '🎵', '💫'];
 const songIcons = ['🎵', '🎶', '🎤', '🌟', '💃', '🕺', '✨', '🎸', '🎹', '🥁', '🎺', '🎷', '🪗', '🎻', '🪘'];
 
-/* ── Render Musicals Grid ────────────────────────────────── */
+/* ── Render Performances Grid ────────────────────────────────── */
 
-async function renderMusicals() {
-  const musicals = await getMusicals();
-  musicalsGrid.innerHTML = '';
+async function renderPerformances() {
+  const performances = await getPerformances();
+  performancesGrid.innerHTML = '';
 
-  if (musicals.length === 0) {
-    musicalsGrid.innerHTML = `
+  if (performances.length === 0) {
+    performancesGrid.innerHTML = `
       <div style="grid-column: 1/-1; text-align:center; padding:40px 20px;">
         <p style="font-size:3rem;">🎭</p>
         <p style="font-family:var(--font-fun); font-size:1.2rem; color:var(--color-text-light); margin-top:12px;">
-          No musicals yet!<br>Tap the button below to get started.
+          No performances yet!<br>Tap the button below to get started.
         </p>
       </div>
     `;
     return;
   }
 
-  musicals.forEach((musical, i) => {
+  performances.forEach((performance, i) => {
     const card = document.createElement('div');
     card.className = 'card';
-    card.dataset.id = musical.id;
+    card.dataset.id = performance.id;
     card.innerHTML = `
-      <span class="card-icon">${musicalIcons[i % musicalIcons.length]}</span>
-      <span>${esc(musical.name)}</span>
-      <button class="card-delete" data-delete-musical="${musical.id}" title="Delete">🗑️</button>
+      <span class="card-icon">${performanceIcons[i % performanceIcons.length]}</span>
+      <span>${esc(performance.name)}</span>
+      <button class="card-delete" data-delete-performance="${performance.id}" title="Delete">🗑️</button>
     `;
     card.addEventListener('click', (e) => {
       if (e.target.closest('.card-delete')) return;
-      showSongs(musical.id);
+      showSongs(performance.id);
     });
-    musicalsGrid.appendChild(card);
+    performancesGrid.appendChild(card);
   });
 }
 
 /* ── Render Songs Grid ───────────────────────────────────── */
 
-async function renderSongs(musicalId) {
-  const songs = await getSongsByMusical(musicalId);
+async function renderSongs(performanceId) {
+  const songs = await getSongsByPerformance(performanceId);
   songsGrid.innerHTML = '';
 
   if (songs.length === 0) {
@@ -108,24 +105,22 @@ async function renderSongs(musicalId) {
 /* ── Navigation Helpers ──────────────────────────────────── */
 
 export async function showHome() {
-  isEditing = false;
-  musicalsGrid.classList.remove('editing');
-  await renderMusicals();
+  performancesGrid.classList.remove('editing');
+  await renderPerformances();
   navigateTo('home');
 }
 
-export async function showSongs(musicalId) {
-  currentMusicalId = musicalId;
-  isEditing = false;
+export async function showSongs(performanceId) {
+  currentPerformanceId = performanceId;
   songsGrid.classList.remove('editing');
 
-  const musical = await getMusical(musicalId);
-  musicalTitle.textContent = musical ? musical.name : 'Songs';
+  const performance = await getPerformance(performanceId);
+  performanceTitle.textContent = performance ? performance.name : 'Songs';
 
   // Show/hide script button based on whether script exists
-  btnViewScript.classList.toggle('hidden', !musical?.scriptPdf);
+  btnViewScript.classList.toggle('hidden', !performance?.scriptPdf);
 
-  await renderSongs(musicalId);
+  await renderSongs(performanceId);
   navigateTo('songs');
 }
 
@@ -136,63 +131,84 @@ async function openPlayer(songId) {
   hideLoading();
 }
 
+async function deleteCurrentPerformanceProject() {
+  if (!currentPerformanceId) return;
+
+  const performance = await getPerformance(currentPerformanceId);
+  const performanceName = performance?.name || 'this performance';
+  if (!confirm(`Delete "${performanceName}" and all its songs?`)) return;
+
+  showLoading('Deleting performance...');
+  try {
+    await deletePerformance(currentPerformanceId);
+    currentPerformanceId = null;
+    await showHome();
+  } catch (err) {
+    console.error('Delete performance failed:', err);
+    alert('Failed to delete this performance. Please try again.');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function openCurrentPerformanceEditor() {
+  if (!currentPerformanceId) return;
+
+  showLoading('Opening performance editor...');
+  try {
+    await openUploadEdit(currentPerformanceId);
+  } catch (err) {
+    console.error('Failed to open performance editor:', err);
+    alert('Could not open the performance editor. Please try again.');
+  } finally {
+    hideLoading();
+  }
+}
+
 /* ── Script Viewer ───────────────────────────────────────── */
 
 async function openScript() {
-  if (!currentMusicalId) return;
-  const musical = await getMusical(currentMusicalId);
-  if (!musical?.scriptPdf) return;
+  if (!currentPerformanceId) return;
 
-  const blob = musical.scriptPdf instanceof Blob
-    ? musical.scriptPdf
-    : new Blob([musical.scriptPdf], { type: 'application/pdf' });
+  // Open the tab immediately in the user gesture to avoid popup blocking.
+  const scriptTab = window.open('about:blank', '_blank');
+  const performance = await getPerformance(currentPerformanceId);
+  if (!performance?.scriptPdf) {
+    if (scriptTab) scriptTab.close();
+    return;
+  }
+
+  const blob = performance.scriptPdf instanceof Blob
+    ? performance.scriptPdf
+    : new Blob([performance.scriptPdf], { type: 'application/pdf' });
 
   const url = URL.createObjectURL(blob);
-  scriptViewer.setAttribute('src', url);
-  modalScript.classList.remove('hidden');
-}
-
-function closeScript() {
-  modalScript.classList.add('hidden');
-  const src = scriptViewer.getAttribute('src');
-  if (src) URL.revokeObjectURL(src);
-  scriptViewer.removeAttribute('src');
+  if (scriptTab) {
+    scriptTab.location.href = url;
+  } else {
+    window.open(url, '_blank');
+  }
 }
 
 /* ── Event Wiring ────────────────────────────────────────── */
 
 export function initSongs() {
-  btnAddMusical.addEventListener('click', () => openUploadNew());
+  btnAddPerformance.addEventListener('click', () => openUploadNew());
 
   btnBackHome.addEventListener('click', () => showHome());
 
   btnViewScript.addEventListener('click', () => openScript());
-  btnCloseScript.addEventListener('click', () => closeScript());
-
-  // Close modal on backdrop click
-  modalScript.addEventListener('click', (e) => {
-    if (e.target === modalScript) closeScript();
-  });
-
-  // Edit musical button
-  btnEditMusical.addEventListener('click', () => {
-    if (isEditing) {
-      isEditing = false;
-      songsGrid.classList.remove('editing');
-    } else {
-      isEditing = true;
-      songsGrid.classList.add('editing');
-    }
-  });
+  btnDeletePerformance.addEventListener('click', () => deleteCurrentPerformanceProject());
+  btnEditPerformance.addEventListener('click', () => openCurrentPerformanceEditor());
 
   // Delete handlers (delegated)
   document.addEventListener('click', async (e) => {
-    const delMusical = e.target.closest('[data-delete-musical]');
-    if (delMusical) {
-      const id = delMusical.dataset.deleteMusical;
-      if (confirm('Delete this entire musical and all its songs?')) {
-        await deleteMusical(id);
-        await renderMusicals();
+    const delPerformance = e.target.closest('[data-delete-performance]');
+    if (delPerformance) {
+      const id = delPerformance.dataset.deletePerformance;
+      if (confirm('Delete this entire performance and all its songs?')) {
+        await deletePerformance(id);
+        await renderPerformances();
       }
       return;
     }
@@ -202,8 +218,9 @@ export function initSongs() {
       const id = delSong.dataset.deleteSong;
       if (confirm('Delete this song?')) {
         await deleteSong(id);
-        await renderSongs(currentMusicalId);
+        await renderSongs(currentPerformanceId);
       }
     }
   });
 }
+

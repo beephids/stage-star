@@ -190,6 +190,12 @@ body {
   border: 2px solid var(--color-border);
 }
 
+.btn-danger {
+  background: #fee2e2;
+  border: 2px solid #fecaca;
+  color: var(--color-red);
+}
+
 /* === Card Grid === */
 .card-grid {
   display: grid;

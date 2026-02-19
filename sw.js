@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stage-star-v1';
+const CACHE_NAME = 'stage-star-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,8 @@ const ASSETS = [
   './js/songs.js',
   './js/player.js',
   './manifest.json',
+  './assets/sound4stock-demo-WITH_VOICE.mp3',
+  './assets/sound4stock-demo-NO_VOICE.mp3',
 ];
 
 // Cache CDN resources on first fetch

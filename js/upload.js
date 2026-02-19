@@ -1,10 +1,10 @@
-import { addMusical, addSong, getMusical, getSongsByMusical, deleteMusical, deleteSong, updateMusical } from './db.js';
+import { addPerformance, addSong, getPerformance, getSongsByPerformance, deletePerformance, deleteSong, updatePerformance } from './db.js';
 import { navigateTo, showLoading, hideLoading } from './app.js';
 import { showHome, showSongs } from './songs.js';
 
 /* ── State ───────────────────────────────────────────────── */
 
-let editingMusicalId = null; // null = creating new, string = editing existing
+let editingPerformanceId = null; // null = creating new, string = editing existing
 let scriptFile = null;
 let guideFiles = [];   // Array of { file, trackNumber, name }
 let accompFiles = [];  // Array of { file, trackNumber, name }
@@ -12,7 +12,7 @@ let matchedSongs = []; // Array of { trackNumber, name, guide, accomp }
 
 /* ── DOM Refs ────────────────────────────────────────────── */
 
-const inputName = document.getElementById('input-musical-name');
+const inputName = document.getElementById('input-performance-name');
 const inputScript = document.getElementById('input-script');
 const dropZoneScript = document.getElementById('drop-zone-script');
 const scriptFileName = document.getElementById('script-file-name');
@@ -28,7 +28,7 @@ const inputAccompFolder = document.getElementById('input-accomp-folder');
 const accompFileList = document.getElementById('accomp-file-list');
 
 const matchedSongsList = document.getElementById('matched-songs-list');
-const btnSave = document.getElementById('btn-save-musical');
+const btnSave = document.getElementById('btn-save-performance');
 const btnBackUpload = document.getElementById('btn-back-upload');
 
 /* ── HTML Escape ─────────────────────────────────────────── */
@@ -276,14 +276,14 @@ function setupDropZone(zone, onFiles) {
 export function initUpload() {
   // Back button
   btnBackUpload.addEventListener('click', () => {
-    if (editingMusicalId) {
-      showSongs(editingMusicalId);
+    if (editingPerformanceId) {
+      showSongs(editingPerformanceId);
     } else {
       showHome();
     }
   });
 
-  // Musical name input
+  // Performance name input
   inputName.addEventListener('input', updateSaveButton);
 
   // Script upload
@@ -369,42 +369,42 @@ export function initUpload() {
   btnSave.addEventListener('click', handleSave);
 }
 
-/* ── Save Musical ────────────────────────────────────────── */
+/* ── Save Performance ────────────────────────────────────────── */
 
 async function handleSave() {
   const name = inputName.value.trim();
   if (!name) return;
 
-  showLoading('Saving your musical...');
+  showLoading('Saving your performance...');
 
   try {
-    let musicalId;
+    let performanceId;
 
-    if (editingMusicalId) {
+    if (editingPerformanceId) {
       // Update existing
-      const existing = await getMusical(editingMusicalId);
+      const existing = await getPerformance(editingPerformanceId);
       existing.name = name;
       if (scriptFile) existing.scriptPdf = scriptFile;
-      await updateMusical(existing);
-      musicalId = editingMusicalId;
+      await updatePerformance(existing);
+      performanceId = editingPerformanceId;
 
       // Delete old songs and re-add
-      const oldSongs = await getSongsByMusical(musicalId);
+      const oldSongs = await getSongsByPerformance(performanceId);
       for (const s of oldSongs) await deleteSong(s.id);
     } else {
       // Create new
-      const musical = await addMusical(name, scriptFile);
-      musicalId = musical.id;
+      const performance = await addPerformance(name, scriptFile);
+      performanceId = performance.id;
     }
 
     // Save each matched song
     for (const song of matchedSongs) {
       if (!song.guide && !song.accomp) continue;
-      await addSong(musicalId, song.trackNumber, song.name, song.guide, song.accomp, song.scriptPage || null);
+      await addSong(performanceId, song.trackNumber, song.name, song.guide, song.accomp, song.scriptPage || null);
     }
 
     resetUploadState();
-    showSongs(musicalId);
+    showSongs(performanceId);
   } catch (err) {
     console.error('Save failed:', err);
     alert('Failed to save. Please try again.');
@@ -416,7 +416,7 @@ async function handleSave() {
 /* ── Reset ───────────────────────────────────────────────── */
 
 function resetUploadState() {
-  editingMusicalId = null;
+  editingPerformanceId = null;
   scriptFile = null;
   guideFiles = [];
   accompFiles = [];
@@ -436,17 +436,17 @@ export function openUploadNew() {
   navigateTo('upload');
 }
 
-export async function openUploadEdit(musicalId) {
+export async function openUploadEdit(performanceId) {
   resetUploadState();
-  editingMusicalId = musicalId;
+  editingPerformanceId = performanceId;
 
-  const musical = await getMusical(musicalId);
-  if (musical) {
-    inputName.value = musical.name;
+  const performance = await getPerformance(performanceId);
+  if (performance) {
+    inputName.value = performance.name;
   }
 
   // Load existing songs to show as matched
-  const songs = await getSongsByMusical(musicalId);
+  const songs = await getSongsByPerformance(performanceId);
   for (const song of songs) {
     if (song.guideVocal) {
       guideFiles.push({ file: song.guideVocal, trackNumber: song.trackNumber, name: song.name, scriptPage: song.scriptPage });
@@ -463,3 +463,4 @@ export async function openUploadEdit(musicalId) {
 
   navigateTo('upload');
 }
+
