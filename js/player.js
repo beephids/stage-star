@@ -767,7 +767,11 @@ export function initPlayer() {
         const presetId = selectBtn.dataset.loopPresetId;
         const preset = loopPresets.find((p) => p.id === presetId);
         if (preset) {
+          const wasPlaying = isPlaying;
           applyLoopRange(preset.start, preset.end);
+          if (wasPlaying) {
+            seekBothTo(preset.start);
+          }
           announce(`Applied loop preset ${preset.name}.`);
         }
       }

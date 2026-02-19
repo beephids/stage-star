@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stage-star-v4';
+const CACHE_NAME = 'stage-star-v5';
 const ASSETS = [
   './',
   './index.html',
