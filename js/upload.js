@@ -1,5 +1,5 @@
-import { addPerformance, addSong, getPerformance, getSongsByPerformance, deletePerformance, deleteSong, updatePerformance } from './db.js';
-import { navigateTo, showLoading, hideLoading } from './app.js';
+import { addPerformance, addSong, getPerformance, getSongsByPerformance, deleteSong, updatePerformance } from './db.js';
+import { navigateTo, showLoading, hideLoading, announce } from './app.js';
 import { showHome, showSongs } from './songs.js';
 
 /* ── State ───────────────────────────────────────────────── */
@@ -93,17 +93,31 @@ function parseAudioFiles(files) {
 function autoMatch() {
   // Preserve existing scriptPage values by track number
   const existingPages = new Map();
+  const existingFavorites = new Map();
+  const existingLoopPresets = new Map();
   for (const s of matchedSongs) {
     if (s.scriptPage) existingPages.set(s.trackNumber, s.scriptPage);
+    if (s.isFavorite) existingFavorites.set(s.trackNumber, true);
+    if (Array.isArray(s.loopPresets) && s.loopPresets.length > 0) {
+      existingLoopPresets.set(s.trackNumber, s.loopPresets);
+    }
   }
 
-  const matched = new Map(); // trackNumber -> { trackNumber, name, guide, accomp, scriptPage }
+  const matched = new Map(); // trackNumber -> { trackNumber, name, guide, accomp, scriptPage, isFavorite, loopPresets }
 
   // Add guide tracks
   for (const g of guideFiles) {
     const key = g.trackNumber || `g_${g.name}`;
     if (!matched.has(key)) {
-      matched.set(key, { trackNumber: g.trackNumber, name: g.name, guide: g.file, accomp: null, scriptPage: existingPages.get(g.trackNumber) || g.scriptPage || null });
+      matched.set(key, {
+        trackNumber: g.trackNumber,
+        name: g.name,
+        guide: g.file,
+        accomp: null,
+        scriptPage: existingPages.get(g.trackNumber) || g.scriptPage || null,
+        isFavorite: existingFavorites.get(g.trackNumber) || g.isFavorite || false,
+        loopPresets: existingLoopPresets.get(g.trackNumber) || g.loopPresets || [],
+      });
     } else {
       matched.get(key).guide = g.file;
     }
@@ -115,7 +129,15 @@ function autoMatch() {
     if (matched.has(key)) {
       matched.get(key).accomp = a.file;
     } else {
-      matched.set(key, { trackNumber: a.trackNumber, name: a.name, guide: null, accomp: a.file, scriptPage: existingPages.get(a.trackNumber) || a.scriptPage || null });
+      matched.set(key, {
+        trackNumber: a.trackNumber,
+        name: a.name,
+        guide: null,
+        accomp: a.file,
+        scriptPage: existingPages.get(a.trackNumber) || a.scriptPage || null,
+        isFavorite: existingFavorites.get(a.trackNumber) || a.isFavorite || false,
+        loopPresets: existingLoopPresets.get(a.trackNumber) || a.loopPresets || [],
+      });
     }
   }
 
@@ -135,7 +157,7 @@ function renderFileList(container, files, type) {
     div.className = 'file-item';
     div.innerHTML = `
       <span class="file-item-name">${f.trackNumber ? '#' + f.trackNumber + ' ' : ''}${esc(f.name)}</span>
-      <button class="file-item-remove" data-type="${type}" data-index="${i}" title="Remove">✕</button>
+      <button class="file-item-remove" type="button" data-type="${type}" data-index="${i}" title="Remove" aria-label="Remove ${esc(fileName)}">✕</button>
     `;
     container.appendChild(div);
   }
@@ -154,16 +176,17 @@ function renderMatchedSongs() {
     const hasGuide = !!song.guide;
     const hasAccomp = !!song.accomp;
     const isComplete = hasGuide && hasAccomp;
+    const trackLabel = song.trackNumber ? `track ${song.trackNumber}` : `song ${i + 1}`;
 
     const div = document.createElement('div');
     div.className = `matched-item ${isComplete ? '' : 'unmatched'}`;
     div.innerHTML = `
       <span class="matched-number">#${song.trackNumber || '?'}</span>
       <span class="matched-name">
-        <input type="text" value="${esc(song.name)}" data-index="${i}" class="matched-name-input">
+        <input type="text" value="${esc(song.name)}" data-index="${i}" class="matched-name-input" aria-label="Song name for ${trackLabel}">
       </span>
       <span class="matched-page">
-        <input type="number" value="${song.scriptPage || ''}" data-index="${i}" class="matched-page-input" placeholder="📜 Pg" min="1" title="Script page number">
+        <input type="number" value="${song.scriptPage || ''}" data-index="${i}" class="matched-page-input" placeholder="📜 Pg" min="1" title="Script page number" aria-label="Script page for ${trackLabel}" inputmode="numeric">
       </span>
       <span class="matched-badges">
         ${hasGuide ? '<span class="badge badge-guide">🎤 Vocal</span>' : '<span class="badge badge-missing">🎤 Missing</span>'}
@@ -292,6 +315,7 @@ export function initUpload() {
     if (files.length > 0) {
       scriptFile = files[0];
       scriptFileName.textContent = '📄 ' + scriptFile.name;
+      announce(`Selected script file ${scriptFile.name}.`);
     }
   });
 
@@ -300,12 +324,14 @@ export function initUpload() {
     if (pdf) {
       scriptFile = pdf;
       scriptFileName.textContent = '📄 ' + scriptFile.name;
+      announce(`Selected script file ${scriptFile.name}.`);
     }
   });
 
   // Guide vocals upload
   const handleGuideFiles = (files) => {
     const parsed = parseAudioFiles(files);
+    const incomingCount = parsed.length;
     // Merge, replacing duplicates by track number
     for (const p of parsed) {
       const existingIdx = guideFiles.findIndex(g => g.trackNumber === p.trackNumber && p.trackNumber > 0);
@@ -318,6 +344,9 @@ export function initUpload() {
     guideFiles.sort((a, b) => a.trackNumber - b.trackNumber);
     renderFileList(guideFileList, guideFiles, 'guide');
     autoMatch();
+    if (incomingCount > 0) {
+      announce(`Added ${incomingCount} guide track${incomingCount === 1 ? '' : 's'}.`);
+    }
   };
 
   inputGuideFiles.addEventListener('change', () => handleGuideFiles(getFilesFromInput(inputGuideFiles)));
@@ -329,6 +358,7 @@ export function initUpload() {
   // Accompaniment upload
   const handleAccompFiles = (files) => {
     const parsed = parseAudioFiles(files);
+    const incomingCount = parsed.length;
     for (const p of parsed) {
       const existingIdx = accompFiles.findIndex(a => a.trackNumber === p.trackNumber && p.trackNumber > 0);
       if (existingIdx >= 0) {
@@ -340,6 +370,9 @@ export function initUpload() {
     accompFiles.sort((a, b) => a.trackNumber - b.trackNumber);
     renderFileList(accompFileList, accompFiles, 'accomp');
     autoMatch();
+    if (incomingCount > 0) {
+      announce(`Added ${incomingCount} accompaniment track${incomingCount === 1 ? '' : 's'}.`);
+    }
   };
 
   inputAccompFiles.addEventListener('change', () => handleAccompFiles(getFilesFromInput(inputAccompFiles)));
@@ -356,11 +389,15 @@ export function initUpload() {
     const idx = parseInt(btn.dataset.index, 10);
 
     if (type === 'guide') {
+      const removed = guideFiles[idx];
       guideFiles.splice(idx, 1);
       renderFileList(guideFileList, guideFiles, 'guide');
+      if (removed) announce(`Removed guide track ${removed.name}.`);
     } else {
+      const removed = accompFiles[idx];
       accompFiles.splice(idx, 1);
       renderFileList(accompFileList, accompFiles, 'accomp');
+      if (removed) announce(`Removed accompaniment track ${removed.name}.`);
     }
     autoMatch();
   });
@@ -400,11 +437,21 @@ async function handleSave() {
     // Save each matched song
     for (const song of matchedSongs) {
       if (!song.guide && !song.accomp) continue;
-      await addSong(performanceId, song.trackNumber, song.name, song.guide, song.accomp, song.scriptPage || null);
+      await addSong(
+        performanceId,
+        song.trackNumber,
+        song.name,
+        song.guide,
+        song.accomp,
+        song.scriptPage || null,
+        song.isFavorite || false,
+        song.loopPresets || []
+      );
     }
 
     resetUploadState();
     showSongs(performanceId);
+    announce('Performance saved.');
   } catch (err) {
     console.error('Save failed:', err);
     alert('Failed to save. Please try again.');
@@ -434,6 +481,7 @@ function resetUploadState() {
 export function openUploadNew() {
   resetUploadState();
   navigateTo('upload');
+  announce('Opened performance setup.');
 }
 
 export async function openUploadEdit(performanceId) {
@@ -449,10 +497,24 @@ export async function openUploadEdit(performanceId) {
   const songs = await getSongsByPerformance(performanceId);
   for (const song of songs) {
     if (song.guideVocal) {
-      guideFiles.push({ file: song.guideVocal, trackNumber: song.trackNumber, name: song.name, scriptPage: song.scriptPage });
+      guideFiles.push({
+        file: song.guideVocal,
+        trackNumber: song.trackNumber,
+        name: song.name,
+        scriptPage: song.scriptPage,
+        isFavorite: !!song.isFavorite,
+        loopPresets: Array.isArray(song.loopPresets) ? song.loopPresets : [],
+      });
     }
     if (song.accompaniment) {
-      accompFiles.push({ file: song.accompaniment, trackNumber: song.trackNumber, name: song.name, scriptPage: song.scriptPage });
+      accompFiles.push({
+        file: song.accompaniment,
+        trackNumber: song.trackNumber,
+        name: song.name,
+        scriptPage: song.scriptPage,
+        isFavorite: !!song.isFavorite,
+        loopPresets: Array.isArray(song.loopPresets) ? song.loopPresets : [],
+      });
     }
   }
 
@@ -462,5 +524,6 @@ export async function openUploadEdit(performanceId) {
   updateSaveButton();
 
   navigateTo('upload');
+  announce('Opened performance editor.');
 }
 

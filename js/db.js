@@ -118,7 +118,16 @@ export async function deletePerformance(id) {
   return reqToPromise(tx('performances', 'readwrite').delete(id));
 }
 
-export async function addSong(performanceId, trackNumber, name, guideVocalBlob, accompanimentBlob, scriptPage = null) {
+export async function addSong(
+  performanceId,
+  trackNumber,
+  name,
+  guideVocalBlob,
+  accompanimentBlob,
+  scriptPage = null,
+  isFavorite = false,
+  loopPresets = []
+) {
   const song = {
     id: generateId(),
     performanceId,
@@ -127,6 +136,8 @@ export async function addSong(performanceId, trackNumber, name, guideVocalBlob, 
     guideVocal: guideVocalBlob,
     accompaniment: accompanimentBlob,
     scriptPage,
+    isFavorite: !!isFavorite,
+    loopPresets: Array.isArray(loopPresets) ? loopPresets : [],
   };
   await reqToPromise(tx('songs', 'readwrite').put(song));
   return song;
@@ -143,8 +154,20 @@ export async function getSong(id) {
   return reqToPromise(tx('songs').get(id));
 }
 
+export async function updateSong(song) {
+  return reqToPromise(tx('songs', 'readwrite').put(song));
+}
+
 export async function deleteSong(id) {
   return reqToPromise(tx('songs', 'readwrite').delete(id));
+}
+
+export async function toggleSongFavorite(id) {
+  const song = await getSong(id);
+  if (!song) return null;
+  song.isFavorite = !song.isFavorite;
+  await reqToPromise(tx('songs', 'readwrite').put(song));
+  return song;
 }
 
 async function fetchAssetBlob(path, fallbackType) {

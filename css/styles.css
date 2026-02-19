@@ -53,6 +53,44 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 1000;
+  background: #111827;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[role="button"]:focus-visible,
+.drop-zone:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
 /* === App Shell === */
 #app {
   max-width: 900px;
@@ -203,6 +241,25 @@ body {
   gap: 16px;
 }
 
+.songs-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.songs-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.songs-section-title {
+  font-family: var(--font-fun);
+  font-size: 1.15rem;
+  color: var(--color-primary-dark);
+  margin-left: 4px;
+}
+
 .card {
   position: relative;
   border-radius: var(--radius);
@@ -234,6 +291,10 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
+.card[role="button"]:focus-visible {
+  outline-offset: 4px;
+}
+
 .card-icon {
   font-size: 2rem;
 }
@@ -263,6 +324,48 @@ body {
   display: none;
   align-items: center;
   justify-content: center;
+}
+
+.card-favorite-btn {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-favorite-btn.active {
+  background: rgba(245, 158, 11, 0.9);
+  color: #fff8e1;
+}
+
+.song-shortcut-card {
+  outline: 3px solid rgba(245, 158, 11, 0.55);
+}
+
+.song-shortcut-card .card-favorite-btn {
+  right: 10px;
+}
+
+.card-shortcut-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff8e1;
+  border-radius: 999px;
+  padding: 2px 8px;
 }
 
 .editing .card-delete {
@@ -421,6 +524,70 @@ body {
 .btn-loop-clear {
   border-color: var(--color-red);
   color: var(--color-red);
+}
+
+.btn-loop-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.loop-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.loop-presets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loop-preset-empty {
+  text-align: center;
+  color: var(--color-text-light);
+  font-size: 0.92rem;
+}
+
+.loop-preset-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-bg-card);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+}
+
+.loop-preset-select {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.loop-preset-select.active {
+  background: #fffbeb;
+  color: var(--color-accent);
+}
+
+.loop-preset-delete {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: var(--color-red);
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 /* === Upload === */

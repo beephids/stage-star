@@ -14,73 +14,80 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <div id="app">
+  <a class="skip-link" href="#app-main">Skip to main content</a>
+  <div id="app" aria-busy="false">
+    <p id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+    <main id="app-main" tabindex="-1">
     <!-- Screen: Home / Performance Picker -->
-    <div id="screen-home" class="screen active">
+    <div id="screen-home" class="screen active" role="region" aria-labelledby="home-title">
       <header class="app-header">
-        <h1 class="app-title">🎭 Stage Star</h1>
+        <h1 id="home-title" class="app-title" tabindex="-1"><span aria-hidden="true">🎭</span> Stage Star</h1>
         <p class="app-subtitle">Pick your show!</p>
       </header>
-      <div id="performances-grid" class="card-grid"></div>
-      <button id="btn-add-performance" class="btn btn-big btn-add" title="Add a new performance">
-        <span class="btn-icon">＋</span>
+      <div id="performances-grid" class="card-grid" aria-label="Performance projects"></div>
+      <button id="btn-add-performance" class="btn btn-big btn-add" type="button" title="Add a new performance">
+        <span class="btn-icon" aria-hidden="true">＋</span>
         <span class="btn-label">Add Performance</span>
       </button>
     </div>
 
     <!-- Screen: Song Picker -->
-    <div id="screen-songs" class="screen">
+    <div id="screen-songs" class="screen" role="region" aria-labelledby="performance-title">
       <header class="app-header">
-        <button id="btn-back-home" class="btn btn-back" title="Back to performances">◀</button>
-        <h1 id="performance-title" class="app-title"></h1>
-        <button id="btn-view-script" class="btn btn-accent" title="View Script">📜 Script</button>
-        <button id="btn-delete-performance" class="btn btn-small btn-danger" title="Delete performance">🗑️</button>
-        <button id="btn-edit-performance" class="btn btn-small btn-edit" title="Edit performance">⚙️</button>
+        <button id="btn-back-home" class="btn btn-back" type="button" title="Back to performances" aria-label="Back to performances">◀</button>
+        <h1 id="performance-title" class="app-title" tabindex="-1"></h1>
+        <button id="btn-view-script" class="btn btn-accent" type="button" title="View Script">📜 Script</button>
+        <button id="btn-delete-performance" class="btn btn-small btn-danger" type="button" title="Delete performance" aria-label="Delete performance">🗑️</button>
+        <button id="btn-edit-performance" class="btn btn-small btn-edit" type="button" title="Edit performance" aria-label="Edit performance">⚙️</button>
       </header>
-      <div id="songs-grid" class="card-grid"></div>
+      <div id="songs-grid" class="songs-sections" aria-label="Songs"></div>
     </div>
 
     <!-- Screen: Player -->
-    <div id="screen-player" class="screen">
+    <div id="screen-player" class="screen" role="region" aria-labelledby="song-title">
       <header class="app-header">
-        <button id="btn-back-songs" class="btn btn-back" title="Back to songs">◀</button>
-        <h1 id="song-title" class="app-title"></h1>
-        <button id="btn-player-script" class="btn btn-accent hidden" title="View Script">📜 Script</button>
+        <button id="btn-back-songs" class="btn btn-back" type="button" title="Back to songs" aria-label="Back to songs">◀</button>
+        <h1 id="song-title" class="app-title" tabindex="-1"></h1>
+        <button id="btn-player-script" class="btn btn-accent hidden" type="button" title="View Script">📜 Script</button>
       </header>
       <div class="player-container">
         <div class="waveform-section">
           <div class="waveform-label label-guide">🎤 With Singing</div>
-          <div id="waveform-guide" class="waveform"></div>
+          <div id="waveform-guide" class="waveform" aria-hidden="true"></div>
           <div class="waveform-label label-accomp">🎵 Music Only</div>
-          <div id="waveform-accomp" class="waveform"></div>
+          <div id="waveform-accomp" class="waveform" aria-hidden="true"></div>
         </div>
         <div class="track-toggle">
-          <button id="btn-toggle-guide" class="btn btn-toggle active" data-track="guide">🎤 With Singing</button>
-          <button id="btn-toggle-accomp" class="btn btn-toggle" data-track="accomp">🎵 Music Only</button>
+          <button id="btn-toggle-guide" class="btn btn-toggle active" type="button" data-track="guide">🎤 With Singing</button>
+          <button id="btn-toggle-accomp" class="btn btn-toggle" type="button" data-track="accomp">🎵 Music Only</button>
         </div>
-        <div class="player-time">
+        <div class="player-time" aria-label="Playback time">
           <span id="time-current">0:00</span>
           <span class="time-sep">/</span>
           <span id="time-total">0:00</span>
         </div>
         <div class="player-controls">
-          <button id="btn-skip-back" class="btn btn-control" title="Skip back 5 seconds">⏪ 5s</button>
-          <button id="btn-play" class="btn btn-play" title="Play / Pause">▶️</button>
-          <button id="btn-skip-forward" class="btn btn-control" title="Skip forward 5 seconds">5s ⏩</button>
+          <button id="btn-skip-back" class="btn btn-control" type="button" title="Skip back 5 seconds">⏪ 5s</button>
+          <button id="btn-play" class="btn btn-play" type="button" title="Play / Pause" aria-label="Play" aria-pressed="false">▶️</button>
+          <button id="btn-skip-forward" class="btn btn-control" type="button" title="Skip forward 5 seconds">5s ⏩</button>
         </div>
         <div class="loop-controls">
-          <button id="btn-loop-start" class="btn btn-loop" title="Set loop start">🅰️ Start</button>
-          <button id="btn-loop-end" class="btn btn-loop" title="Set loop end">🅱️ End</button>
-          <button id="btn-loop-clear" class="btn btn-loop btn-loop-clear hidden" title="Clear loop">✖ Clear Loop</button>
+          <button id="btn-loop-start" class="btn btn-loop" type="button" title="Set loop start">🅰️ Start</button>
+          <button id="btn-loop-end" class="btn btn-loop" type="button" title="Set loop end">🅱️ End</button>
+          <button id="btn-loop-clear" class="btn btn-loop btn-loop-clear hidden" type="button" title="Clear loop">✖ Clear Loop</button>
+        </div>
+        <div class="loop-presets">
+          <button id="btn-save-loop-preset" class="btn btn-loop btn-loop-save" type="button" title="Save current loop" disabled>Save Loop</button>
+          <div id="loop-presets-list" class="loop-presets-list" role="list" aria-label="Saved loop presets"></div>
         </div>
       </div>
     </div>
 
     <!-- Screen: Upload / Setup -->
-    <div id="screen-upload" class="screen">
+    <div id="screen-upload" class="screen" role="region" aria-labelledby="upload-title">
       <header class="app-header">
-        <button id="btn-back-upload" class="btn btn-back" title="Back">◀</button>
-        <h1 class="app-title">🎬 Set Up Performance</h1>
+        <button id="btn-back-upload" class="btn btn-back" type="button" title="Back" aria-label="Back">◀</button>
+        <h1 id="upload-title" class="app-title" tabindex="-1">🎬 Set Up Performance</h1>
       </header>
       <div class="upload-container">
         <div class="upload-step" id="upload-step-name">
@@ -92,9 +99,9 @@
           <label class="upload-label">Script (optional PDF)</label>
           <div class="drop-zone" id="drop-zone-script">
             <span class="drop-zone-text">📜 Drop PDF here or tap to browse</span>
-            <input type="file" id="input-script" accept=".pdf" class="drop-zone-input">
+            <input type="file" id="input-script" accept=".pdf" class="drop-zone-input" aria-label="Choose script PDF">
           </div>
-          <div id="script-file-name" class="file-name-display"></div>
+          <div id="script-file-name" class="file-name-display" aria-live="polite"></div>
         </div>
 
         <div class="upload-step" id="upload-step-guide">
@@ -106,9 +113,9 @@
             <button type="button" class="btn btn-small btn-browse" id="btn-browse-guide-files">📁 Browse Files</button>
             <button type="button" class="btn btn-small btn-browse" id="btn-browse-guide-folder">📂 Browse Folder</button>
           </div>
-          <input type="file" id="input-guide-files" accept="audio/*" multiple class="hidden-input">
-          <input type="file" id="input-guide-folder" accept="audio/*" multiple class="hidden-input" webkitdirectory>
-          <div id="guide-file-list" class="file-list"></div>
+          <input type="file" id="input-guide-files" accept="audio/*" multiple class="hidden-input" tabindex="-1" aria-hidden="true">
+          <input type="file" id="input-guide-folder" accept="audio/*" multiple class="hidden-input" tabindex="-1" aria-hidden="true" webkitdirectory>
+          <div id="guide-file-list" class="file-list" aria-live="polite" aria-label="Guide tracks list"></div>
         </div>
 
         <div class="upload-step" id="upload-step-accomp">
@@ -120,38 +127,41 @@
             <button type="button" class="btn btn-small btn-browse" id="btn-browse-accomp-files">📁 Browse Files</button>
             <button type="button" class="btn btn-small btn-browse" id="btn-browse-accomp-folder">📂 Browse Folder</button>
           </div>
-          <input type="file" id="input-accomp-files" accept="audio/*" multiple class="hidden-input">
-          <input type="file" id="input-accomp-folder" accept="audio/*" multiple class="hidden-input" webkitdirectory>
-          <div id="accomp-file-list" class="file-list"></div>
+          <input type="file" id="input-accomp-files" accept="audio/*" multiple class="hidden-input" tabindex="-1" aria-hidden="true">
+          <input type="file" id="input-accomp-folder" accept="audio/*" multiple class="hidden-input" tabindex="-1" aria-hidden="true" webkitdirectory>
+          <div id="accomp-file-list" class="file-list" aria-live="polite" aria-label="Accompaniment tracks list"></div>
         </div>
 
         <div class="upload-step" id="upload-step-match">
           <label class="upload-label">Matched Songs</label>
-          <div id="matched-songs-list" class="matched-list"></div>
+          <div id="matched-songs-list" class="matched-list" aria-live="polite"></div>
         </div>
 
         <div class="upload-actions">
-          <button id="btn-save-performance" class="btn btn-big btn-save" disabled>💾 Save Performance</button>
+          <button id="btn-save-performance" class="btn btn-big btn-save" type="button" disabled>💾 Save Performance</button>
         </div>
       </div>
     </div>
 
     <!-- Script Viewer Modal -->
-    <div id="modal-script" class="modal hidden">
+    <div id="modal-script" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-script-title" aria-hidden="true">
       <div class="modal-content">
-        <button id="btn-close-script" class="btn btn-back modal-close" title="Close">✖</button>
-        <embed id="script-viewer" type="application/pdf" width="100%" height="100%">
+        <h2 id="modal-script-title" class="sr-only">Script viewer</h2>
+        <button id="btn-close-script" class="btn btn-back modal-close" type="button" title="Close" aria-label="Close script viewer">✖</button>
+        <embed id="script-viewer" type="application/pdf" width="100%" height="100%" title="Script PDF">
       </div>
     </div>
 
     <!-- Loading overlay -->
-    <div id="loading-overlay" class="loading-overlay hidden">
-      <div class="spinner"></div>
+    <div id="loading-overlay" class="loading-overlay hidden" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true">
+      <div class="spinner" aria-hidden="true"></div>
       <p class="loading-text">Loading...</p>
     </div>
+    </main>
   </div>
 
   <script src="js/app.js" type="module"></script>
 </body>
 </html>
+
 

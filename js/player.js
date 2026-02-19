@@ -1,5 +1,5 @@
-import { getSong, getPerformance } from './db.js';
-import { navigateTo } from './app.js';
+import { getSong, getPerformance, updateSong } from './db.js';
+import { navigateTo, announce } from './app.js';
 import { showSongs } from './songs.js';
 
 /* ── WaveSurfer dynamic import (ESM from CDN) ───────────── */
@@ -33,6 +33,7 @@ let loopStart = null;
 let loopEnd = null;
 let loopRegionGuide = null;
 let loopRegionAccomp = null;
+let loopPresets = [];
 
 /* ── DOM Refs ────────────────────────────────────────────── */
 
@@ -55,6 +56,8 @@ const btnPlayerScript = document.getElementById('btn-player-script');
 const btnLoopStart = document.getElementById('btn-loop-start');
 const btnLoopEnd = document.getElementById('btn-loop-end');
 const btnLoopClear = document.getElementById('btn-loop-clear');
+const btnSaveLoopPreset = document.getElementById('btn-save-loop-preset');
+const loopPresetsList = document.getElementById('loop-presets-list');
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
@@ -71,6 +74,189 @@ function getActive() {
 
 function getInactive() {
   return activeTrack === 'guide' ? accompWaveSurfer : guideWaveSurfer;
+}
+
+const LOOP_PRESET_TOLERANCE = 0.05;
+
+function isValidLoopRange(start, end) {
+  return start !== null && end !== null && !isNaN(start) && !isNaN(end) && start < end;
+}
+
+function roundLoopTime(seconds) {
+  return Math.round(seconds * 100) / 100;
+}
+
+function normalizeLoopPresets(rawPresets) {
+  if (!Array.isArray(rawPresets)) return [];
+
+  return rawPresets
+    .map((preset, i) => {
+      const start = Number(preset?.start);
+      const end = Number(preset?.end);
+      if (!isFinite(start) || !isFinite(end) || start >= end) return null;
+      return {
+        id: preset?.id || `lp-${Date.now()}-${i}`,
+        name: preset?.name || `Loop ${i + 1}`,
+        start: roundLoopTime(start),
+        end: roundLoopTime(end),
+      };
+    })
+    .filter(Boolean);
+}
+
+function isLoopPresetActive(preset) {
+  if (!isValidLoopRange(loopStart, loopEnd)) return false;
+  return (
+    Math.abs(loopStart - preset.start) <= LOOP_PRESET_TOLERANCE &&
+    Math.abs(loopEnd - preset.end) <= LOOP_PRESET_TOLERANCE
+  );
+}
+
+function getLoopPresetLabel(preset) {
+  return `${preset.name} · ${formatTime(preset.start)} - ${formatTime(preset.end)}`;
+}
+
+function updateLoopPointLabels() {
+  btnLoopStart.setAttribute(
+    'aria-label',
+    loopStart === null ? 'Set loop start' : `Loop start at ${formatTime(loopStart)}`
+  );
+  btnLoopEnd.setAttribute(
+    'aria-label',
+    loopEnd === null ? 'Set loop end' : `Loop end at ${formatTime(loopEnd)}`
+  );
+}
+
+function updateLoopSaveButtonState() {
+  if (!btnSaveLoopPreset) return;
+  btnSaveLoopPreset.disabled = !currentSongData || !isValidLoopRange(loopStart, loopEnd);
+}
+
+function renderLoopPresets() {
+  if (!loopPresetsList) return;
+
+  if (!loopPresets.length) {
+    loopPresetsList.innerHTML = '<p class="loop-preset-empty">No saved loops yet.</p>';
+    return;
+  }
+
+  loopPresetsList.innerHTML = '';
+  loopPresets.forEach((preset) => {
+    const row = document.createElement('div');
+    row.className = 'loop-preset-item';
+    row.setAttribute('role', 'listitem');
+
+    const selectBtn = document.createElement('button');
+    selectBtn.type = 'button';
+    selectBtn.className = `loop-preset-select${isLoopPresetActive(preset) ? ' active' : ''}`;
+    selectBtn.dataset.loopPresetId = preset.id;
+    selectBtn.textContent = getLoopPresetLabel(preset);
+    selectBtn.setAttribute(
+      'aria-label',
+      `Apply ${preset.name}, from ${formatTime(preset.start)} to ${formatTime(preset.end)}`
+    );
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'loop-preset-delete';
+    delBtn.dataset.deleteLoopPreset = preset.id;
+    delBtn.title = 'Delete loop preset';
+    delBtn.setAttribute('aria-label', `Delete loop preset ${preset.name}`);
+    delBtn.textContent = 'X';
+
+    row.appendChild(selectBtn);
+    row.appendChild(delBtn);
+    loopPresetsList.appendChild(row);
+  });
+}
+
+function applyLoopRange(start, end) {
+  if (!isValidLoopRange(start, end)) return;
+
+  loopStart = roundLoopTime(start);
+  loopEnd = roundLoopTime(end);
+  btnLoopStart.classList.add('loop-active');
+  btnLoopEnd.classList.add('loop-active');
+  btnLoopStart.textContent = '🅰️ ' + formatTime(loopStart);
+  btnLoopEnd.textContent = '🅱️ ' + formatTime(loopEnd);
+  updateLoopPointLabels();
+
+  updateLoopRegions();
+  updateLoopClearButton();
+  updateLoopSaveButtonState();
+  renderLoopPresets();
+}
+
+async function persistLoopPresets() {
+  if (!currentSongData?.id) return;
+  const updatedSong = {
+    ...currentSongData,
+    loopPresets: loopPresets.map((preset) => ({
+      id: preset.id,
+      name: preset.name,
+      start: preset.start,
+      end: preset.end,
+    })),
+  };
+  await updateSong(updatedSong);
+  currentSongData = updatedSong;
+}
+
+function nextLoopPresetName() {
+  let n = 1;
+  while (loopPresets.some((p) => p.name === `Loop ${n}`)) n++;
+  return `Loop ${n}`;
+}
+
+async function saveCurrentLoopPreset() {
+  if (!isValidLoopRange(loopStart, loopEnd)) return;
+
+  const roundedStart = roundLoopTime(loopStart);
+  const roundedEnd = roundLoopTime(loopEnd);
+  const duplicate = loopPresets.find((preset) =>
+    Math.abs(preset.start - roundedStart) <= LOOP_PRESET_TOLERANCE &&
+    Math.abs(preset.end - roundedEnd) <= LOOP_PRESET_TOLERANCE
+  );
+  if (duplicate) {
+    applyLoopRange(duplicate.start, duplicate.end);
+    announce(`Applied existing loop preset ${duplicate.name}.`);
+    return;
+  }
+
+  const newPreset = {
+    id: `lp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: nextLoopPresetName(),
+    start: roundedStart,
+    end: roundedEnd,
+  };
+
+  loopPresets = [...loopPresets, newPreset];
+  try {
+    await persistLoopPresets();
+  } catch (err) {
+    loopPresets = loopPresets.filter((preset) => preset.id !== newPreset.id);
+    console.error('Failed to save loop preset:', err);
+    alert('Could not save loop preset. Please try again.');
+    return;
+  }
+
+  renderLoopPresets();
+  announce(`Saved loop preset ${newPreset.name}.`);
+}
+
+async function deleteLoopPreset(presetId) {
+  const removedPreset = loopPresets.find((preset) => preset.id === presetId);
+  const previousPresets = loopPresets;
+  loopPresets = loopPresets.filter((preset) => preset.id !== presetId);
+  try {
+    await persistLoopPresets();
+    renderLoopPresets();
+    if (removedPreset) announce(`Deleted loop preset ${removedPreset.name}.`);
+  } catch (err) {
+    loopPresets = previousPresets;
+    console.error('Failed to delete loop preset:', err);
+    alert('Could not delete loop preset. Please try again.');
+  }
 }
 
 /* ── Sync ────────────────────────────────────────────────── */
@@ -156,8 +342,10 @@ export async function loadSong(songId) {
   if (performance?.scriptPdf) {
     btnPlayerScript.classList.remove('hidden');
     btnPlayerScript.dataset.scriptPage = song.scriptPage || '1';
+    btnPlayerScript.setAttribute('aria-hidden', 'false');
   } else {
     btnPlayerScript.classList.add('hidden');
+    btnPlayerScript.setAttribute('aria-hidden', 'true');
   }
 
   // Cleanup previous
@@ -237,8 +425,12 @@ export async function loadSong(songId) {
   updateTrackToggleUI();
   updateMutedVisuals();
   resetLoop();
+  loopPresets = normalizeLoopPresets(song.loopPresets);
+  renderLoopPresets();
+  updateLoopSaveButtonState();
   isPlaying = false;
   updatePlayButton();
+  announce(`Loaded song ${song.name}.`);
 }
 
 function handleFinish() {
@@ -271,6 +463,8 @@ function togglePlay() {
 }
 
 function updatePlayButton() {
+  btnPlay.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+  btnPlay.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
   btnPlay.textContent = isPlaying ? '⏸️' : '▶️';
 }
 
@@ -304,10 +498,14 @@ function switchTrack(track) {
 function updateTrackToggleUI() {
   btnToggleGuide.classList.toggle('active', activeTrack === 'guide');
   btnToggleAccomp.classList.toggle('active', activeTrack === 'accomp');
+  btnToggleGuide.setAttribute('aria-pressed', activeTrack === 'guide' ? 'true' : 'false');
+  btnToggleAccomp.setAttribute('aria-pressed', activeTrack === 'accomp' ? 'true' : 'false');
 
   // Hide toggle buttons if only one track exists
   btnToggleGuide.classList.toggle('hidden', !guideUrl);
   btnToggleAccomp.classList.toggle('hidden', !accompUrl);
+  btnToggleGuide.setAttribute('aria-hidden', !guideUrl ? 'true' : 'false');
+  btnToggleAccomp.setAttribute('aria-hidden', !accompUrl ? 'true' : 'false');
 }
 
 function updateMutedVisuals() {
@@ -349,8 +547,11 @@ function setLoopStart() {
     }
   }
 
+  updateLoopPointLabels();
   updateLoopRegions();
   updateLoopClearButton();
+  updateLoopSaveButtonState();
+  renderLoopPresets();
 }
 
 function setLoopEnd() {
@@ -366,28 +567,37 @@ function setLoopEnd() {
     btnLoopStart.textContent = '🅰️ Start';
   }
 
+  updateLoopPointLabels();
   updateLoopRegions();
   updateLoopClearButton();
+  updateLoopSaveButtonState();
+  renderLoopPresets();
 }
 
 function clearLoop() {
+  const hadLoop = isValidLoopRange(loopStart, loopEnd);
   resetLoop();
   updateLoopRegions();
+  if (hadLoop) announce('Cleared loop.');
 }
 
 function resetLoop() {
   loopStart = null;
   loopEnd = null;
+  updateLoopPointLabels();
   btnLoopStart.classList.remove('loop-active');
   btnLoopEnd.classList.remove('loop-active');
   btnLoopStart.textContent = '🅰️ Start';
   btnLoopEnd.textContent = '🅱️ End';
   updateLoopClearButton();
   removeLoopRegions();
+  updateLoopSaveButtonState();
+  renderLoopPresets();
 }
 
 function updateLoopClearButton() {
   btnLoopClear.classList.toggle('hidden', loopStart === null && loopEnd === null);
+  btnLoopClear.setAttribute('aria-hidden', loopStart === null && loopEnd === null ? 'true' : 'false');
 }
 
 function updateLoopRegions() {
@@ -409,9 +619,12 @@ function updateLoopRegions() {
     loopRegionGuide.on('update-end', () => {
       loopStart = loopRegionGuide.start;
       loopEnd = loopRegionGuide.end;
+      updateLoopPointLabels();
       btnLoopStart.textContent = '🅰️ ' + formatTime(loopStart);
       btnLoopEnd.textContent = '🅱️ ' + formatTime(loopEnd);
       syncLoopRegion('guide');
+      updateLoopSaveButtonState();
+      renderLoopPresets();
     });
   }
 
@@ -420,9 +633,12 @@ function updateLoopRegions() {
     loopRegionAccomp.on('update-end', () => {
       loopStart = loopRegionAccomp.start;
       loopEnd = loopRegionAccomp.end;
+      updateLoopPointLabels();
       btnLoopStart.textContent = '🅰️ ' + formatTime(loopStart);
       btnLoopEnd.textContent = '🅱️ ' + formatTime(loopEnd);
       syncLoopRegion('accomp');
+      updateLoopSaveButtonState();
+      renderLoopPresets();
     });
   }
 }
@@ -483,6 +699,9 @@ export function destroyPlayer() {
   }
   cleanupWaveSurfers();
   resetLoop();
+  loopPresets = [];
+  renderLoopPresets();
+  updateLoopSaveButtonState();
   timeCurrent.textContent = '0:00';
   timeTotal.textContent = '0:00';
   updatePlayButton();
@@ -513,6 +732,7 @@ async function openScriptFromPlayer() {
   } else {
     window.open(scriptUrl, '_blank');
   }
+  announce('Opened script in a new tab.');
 }
 
 /* ── Init ────────────────────────────────────────────────── */
@@ -528,6 +748,31 @@ export function initPlayer() {
   btnLoopStart.addEventListener('click', setLoopStart);
   btnLoopEnd.addEventListener('click', setLoopEnd);
   btnLoopClear.addEventListener('click', clearLoop);
+  if (btnSaveLoopPreset) {
+    btnSaveLoopPreset.addEventListener('click', saveCurrentLoopPreset);
+  }
+  if (loopPresetsList) {
+    loopPresetsList.addEventListener('click', async (e) => {
+      const delBtn = e.target.closest('[data-delete-loop-preset]');
+      if (delBtn) {
+        const presetId = delBtn.dataset.deleteLoopPreset;
+        if (presetId) {
+          await deleteLoopPreset(presetId);
+        }
+        return;
+      }
+
+      const selectBtn = e.target.closest('[data-loop-preset-id]');
+      if (selectBtn) {
+        const presetId = selectBtn.dataset.loopPresetId;
+        const preset = loopPresets.find((p) => p.id === presetId);
+        if (preset) {
+          applyLoopRange(preset.start, preset.end);
+          announce(`Applied loop preset ${preset.name}.`);
+        }
+      }
+    });
+  }
 
   // Script viewer from player
   btnPlayerScript.addEventListener('click', openScriptFromPlayer);
@@ -560,5 +805,9 @@ export function initPlayer() {
         break;
     }
   });
+
+  renderLoopPresets();
+  updateLoopSaveButtonState();
+  updateLoopPointLabels();
 }
 
