@@ -1,0 +1,16 @@
+{
+  "name": "Stage Star — Musical Rehearsal",
+  "short_name": "Stage Star",
+  "description": "Practice your musical theatre songs!",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fdf6ff",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎭</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
