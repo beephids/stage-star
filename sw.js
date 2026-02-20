@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stage-star-v5';
+const CACHE_NAME = 'stage-star-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
   './js/songs.js',
   './js/player.js',
   './manifest.json',
+  './assets/favicon.svg',
   './assets/sound4stock-demo-WITH_VOICE.mp3',
   './assets/sound4stock-demo-NO_VOICE.mp3',
 ];

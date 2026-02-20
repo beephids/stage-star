@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Stage Star — Performance Rehearsal</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,10 +26,15 @@
         <p class="app-subtitle">Pick your show!</p>
       </header>
       <div id="performances-grid" class="card-grid" aria-label="Performance projects"></div>
-      <button id="btn-add-performance" class="btn btn-big btn-add" type="button" title="Add a new performance">
-        <span class="btn-icon" aria-hidden="true">＋</span>
-        <span class="btn-label">Add Performance</span>
-      </button>
+      <div class="home-actions">
+        <button id="btn-add-performance" class="btn btn-big btn-add" type="button" title="Add a new performance">
+          <span class="btn-icon" aria-hidden="true">＋</span>
+          <span class="btn-label">Add Performance</span>
+        </button>
+        <button id="btn-home-credits" class="btn btn-small btn-credits" type="button" title="View credits and project info">
+          <span>Credits</span>
+        </button>
+      </div>
     </div>
 
     <!-- Screen: Song Picker -->
@@ -139,6 +145,26 @@
 
         <div class="upload-actions">
           <button id="btn-save-performance" class="btn btn-big btn-save" type="button" disabled>💾 Save Performance</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credits Modal -->
+    <div id="modal-credits" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-credits-title" aria-describedby="modal-credits-body" aria-hidden="true">
+      <div class="modal-content modal-content-credits">
+        <button id="btn-close-credits" class="btn btn-back modal-close" type="button" title="Close" aria-label="Close credits">X</button>
+        <h2 id="modal-credits-title" class="credits-title">About Stage Star</h2>
+        <div id="modal-credits-body" class="credits-body">
+          <p>Stage Star is a local-first rehearsal app for organizing performances and practicing tracks.</p>
+          <ul class="credits-list">
+            <li><strong>Author:</strong> beephids</li>
+            <li><strong>License:</strong> GNU General Public License v3.0</li>
+            <li><strong>Storage:</strong> IndexedDB (data stays in your browser)</li>
+            <li><strong>Built with:</strong> Vanilla JS, WaveSurfer.js, Service Worker</li>
+          </ul>
+          <p><a href="https://github.com/beephids/stage-star" target="_blank" rel="noopener noreferrer">GitHub Repository</a></p>
+          <p><a href="./LICENSE" target="_blank" rel="noopener noreferrer">View License Text</a></p>
+          <p><a href="./assets/attribution.md" target="_blank" rel="noopener noreferrer">Demo Audio Attribution</a></p>
         </div>
       </div>
     </div>

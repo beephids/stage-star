@@ -1,5 +1,5 @@
 {
-  "name": "Stage Star — Performance Rehearsal",
+  "name": "Stage Star \u2014 Performance Rehearsal",
   "short_name": "Stage Star",
   "description": "Practice your performance songs!",
   "start_url": ".",
@@ -8,10 +8,10 @@
   "theme_color": "#7c3aed",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎭</text></svg>",
+      "src": "assets/favicon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }
-

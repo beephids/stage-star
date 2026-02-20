@@ -16,10 +16,15 @@ const performancesGrid = document.getElementById('performances-grid');
 const songsGrid = document.getElementById('songs-grid');
 const performanceTitle = document.getElementById('performance-title');
 const btnAddPerformance = document.getElementById('btn-add-performance');
+const btnHomeCredits = document.getElementById('btn-home-credits');
 const btnBackHome = document.getElementById('btn-back-home');
 const btnViewScript = document.getElementById('btn-view-script');
 const btnDeletePerformance = document.getElementById('btn-delete-performance');
 const btnEditPerformance = document.getElementById('btn-edit-performance');
+const modalCredits = document.getElementById('modal-credits');
+const btnCloseCredits = document.getElementById('btn-close-credits');
+
+let lastCreditsTrigger = null;
 
 function esc(str) {
   const el = document.createElement('span');
@@ -299,12 +304,55 @@ async function openScript() {
   announce('Opened script in a new tab.');
 }
 
+function isCreditsOpen() {
+  return !!modalCredits && !modalCredits.classList.contains('hidden');
+}
+
+function openCreditsDialog() {
+  if (!modalCredits) return;
+  lastCreditsTrigger = document.activeElement;
+  modalCredits.classList.remove('hidden');
+  modalCredits.setAttribute('aria-hidden', 'false');
+  if (btnCloseCredits) btnCloseCredits.focus();
+  announce('Opened credits dialog.');
+}
+
+function closeCreditsDialog() {
+  if (!modalCredits || !isCreditsOpen()) return;
+  modalCredits.classList.add('hidden');
+  modalCredits.setAttribute('aria-hidden', 'true');
+  if (lastCreditsTrigger && typeof lastCreditsTrigger.focus === 'function') {
+    lastCreditsTrigger.focus();
+  }
+  announce('Closed credits dialog.');
+}
+
 export function initSongs() {
   btnAddPerformance.addEventListener('click', () => openUploadNew());
+  if (btnHomeCredits) {
+    btnHomeCredits.addEventListener('click', openCreditsDialog);
+  }
   btnBackHome.addEventListener('click', () => showHome());
   btnViewScript.addEventListener('click', () => openScript());
   btnDeletePerformance.addEventListener('click', () => deleteCurrentPerformanceProject());
   btnEditPerformance.addEventListener('click', () => openCurrentPerformanceEditor());
+  if (btnCloseCredits) {
+    btnCloseCredits.addEventListener('click', closeCreditsDialog);
+  }
+  if (modalCredits) {
+    modalCredits.addEventListener('click', (e) => {
+      if (e.target === modalCredits) {
+        closeCreditsDialog();
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isCreditsOpen()) {
+      e.preventDefault();
+      closeCreditsDialog();
+    }
+  });
 
   document.addEventListener('click', async (e) => {
     const favoriteSongBtn = e.target.closest('[data-toggle-favorite-song]');

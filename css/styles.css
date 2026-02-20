@@ -199,6 +199,25 @@ input:focus-visible,
   font-size: 1.5rem;
 }
 
+.home-actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-actions .btn-add {
+  margin-top: 0;
+}
+
+.btn-credits {
+  width: 100%;
+  margin-top: 22px;
+  background: var(--color-bg-card);
+  color: var(--color-primary-dark);
+  border: 2px solid var(--color-border);
+}
+
 .btn-small {
   min-height: 44px;
   min-width: 44px;
@@ -822,6 +841,14 @@ input:focus-visible,
   flex-direction: column;
 }
 
+.modal-content-credits {
+  max-width: 620px;
+  height: auto;
+  max-height: min(85vh, 640px);
+  overflow-y: auto;
+  padding: 20px;
+}
+
 .modal-close {
   position: absolute;
   top: 8px;
@@ -835,6 +862,32 @@ input:focus-visible,
   flex: 1;
   border: none;
   border-radius: var(--radius-sm);
+}
+
+.credits-title {
+  font-family: var(--font-fun);
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  padding-right: 50px;
+}
+
+.credits-body {
+  color: var(--color-text);
+  line-height: 1.55;
+  font-size: 0.98rem;
+}
+
+.credits-list {
+  margin: 10px 0 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.credits-body a {
+  color: var(--color-primary-dark);
+  font-weight: 800;
 }
 
 /* === Loading === */
