@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stage-star-v6';
+const CACHE_NAME = 'stage-star-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -14,11 +14,10 @@ const ASSETS = [
   './assets/sound4stock-demo-NO_VOICE.mp3',
 ];
 
-// Cache CDN resources on first fetch
+// Cache font CDN resources on first fetch
 const CDN_URLS = [
   'https://fonts.googleapis.com',
   'https://fonts.gstatic.com',
-  'https://unpkg.com/wavesurfer.js',
 ];
 
 self.addEventListener('install', (event) => {
@@ -78,6 +77,12 @@ self.addEventListener('fetch', (event) => {
         });
       })
     );
+    return;
+  }
+
+  // For non-local origins that are not explicitly allowlisted CDNs: network only.
+  const requestUrl = new URL(request.url);
+  if (requestUrl.origin !== self.location.origin) {
     return;
   }
 

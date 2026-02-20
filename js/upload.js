@@ -10,6 +10,11 @@ let guideFiles = [];   // Array of { file, trackNumber, name }
 let accompFiles = [];  // Array of { file, trackNumber, name }
 let matchedSongs = []; // Array of { trackNumber, name, guide, accomp }
 
+const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.m4a', '.aif', '.aiff', '.ogg', '.flac', '.wma', '.aac']);
+const MAX_SCRIPT_PDF_BYTES = 30 * 1024 * 1024;
+const MAX_AUDIO_FILE_BYTES = 150 * 1024 * 1024;
+const MAX_AUDIO_TOTAL_BYTES = 1024 * 1024 * 1024;
+
 /* ── DOM Refs ────────────────────────────────────────────── */
 
 const inputName = document.getElementById('input-performance-name');
@@ -39,6 +44,62 @@ function esc(str) {
   return el.innerHTML;
 }
 
+function getFileExtension(filename) {
+  const idx = filename.lastIndexOf('.');
+  return idx >= 0 ? filename.slice(idx).toLowerCase() : '';
+}
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIdx = 0;
+  while (value >= 1024 && unitIdx < units.length - 1) {
+    value /= 1024;
+    unitIdx++;
+  }
+  const fixed = value >= 100 || unitIdx === 0 ? 0 : 1;
+  return `${value.toFixed(fixed)} ${units[unitIdx]}`;
+}
+
+function getFileSize(file) {
+  return Number(file?.size) || 0;
+}
+
+function getAudioTotalBytes() {
+  const guideBytes = guideFiles.reduce((sum, item) => sum + getFileSize(item.file), 0);
+  const accompBytes = accompFiles.reduce((sum, item) => sum + getFileSize(item.file), 0);
+  return guideBytes + accompBytes;
+}
+
+function validateScriptPdfFile(file) {
+  if (!file) return { valid: false, message: 'No script file selected.' };
+
+  const ext = getFileExtension(file.name || '');
+  const mime = String(file.type || '').toLowerCase();
+  const isPdfExt = ext === '.pdf';
+  const isPdfMime = !mime || mime === 'application/pdf' || mime.endsWith('/pdf');
+  if (!isPdfExt || !isPdfMime) {
+    return { valid: false, message: 'Script must be a PDF file.' };
+  }
+  if (getFileSize(file) > MAX_SCRIPT_PDF_BYTES) {
+    return {
+      valid: false,
+      message: `Script PDF is too large. Max size is ${formatBytes(MAX_SCRIPT_PDF_BYTES)}.`,
+    };
+  }
+
+  return { valid: true, message: '' };
+}
+
+function validateAudioFileType(file) {
+  const ext = getFileExtension(file.name || '');
+  const mime = String(file.type || '').toLowerCase();
+  if (!AUDIO_EXTENSIONS.has(ext)) return false;
+  if (mime && !mime.startsWith('audio/')) return false;
+  return true;
+}
+
 /* ── Filename Parser ─────────────────────────────────────── */
 
 /**
@@ -63,29 +124,31 @@ function parseFilename(filename) {
 
 /**
  * Given a list of Files, parse them into { file, trackNumber, name } objects.
- * Filters to audio files only.
+ * Filters to supported audio files only.
  */
 function parseAudioFiles(files) {
-  const audioExts = ['.mp3', '.wav', '.m4a', '.aif', '.aiff', '.ogg', '.flac', '.wma', '.aac'];
-  const result = [];
+  const parsed = [];
+  const rejectedUnsupported = [];
 
   for (const file of files) {
-    const ext = '.' + file.name.split('.').pop().toLowerCase();
-    if (!audioExts.includes(ext)) continue;
+    if (!validateAudioFileType(file)) {
+      rejectedUnsupported.push(file.name || 'unnamed file');
+      continue;
+    }
 
-    const parsed = parseFilename(file.name);
-    if (parsed) {
-      result.push({ file, trackNumber: parsed.trackNumber, name: parsed.name });
+    const fileMeta = parseFilename(file.name);
+    if (fileMeta) {
+      parsed.push({ file, trackNumber: fileMeta.trackNumber, name: fileMeta.name });
     } else {
       // Use full filename as name, no track number
       const name = file.name.replace(/\.[^.]+$/, '').trim();
-      result.push({ file, trackNumber: 0, name });
+      parsed.push({ file, trackNumber: 0, name });
     }
   }
 
   // Sort by track number
-  result.sort((a, b) => a.trackNumber - b.trackNumber);
-  return result;
+  parsed.sort((a, b) => a.trackNumber - b.trackNumber);
+  return { parsed, rejectedUnsupported };
 }
 
 /* ── Auto-Match ──────────────────────────────────────────── */
@@ -296,6 +359,40 @@ function setupDropZone(zone, onFiles) {
 
 /* ── Event Wiring ────────────────────────────────────────── */
 
+function notifyAudioValidationIssues(sourceLabel, unsupportedCount, oversizedCount, overTotalCount) {
+  const issues = [];
+  if (unsupportedCount > 0) issues.push(`${unsupportedCount} unsupported type${unsupportedCount === 1 ? '' : 's'}`);
+  if (oversizedCount > 0) {
+    issues.push(
+      `${oversizedCount} file${oversizedCount === 1 ? '' : 's'} over ${formatBytes(MAX_AUDIO_FILE_BYTES)} each`
+    );
+  }
+  if (overTotalCount > 0) {
+    issues.push(
+      `${overTotalCount} file${overTotalCount === 1 ? '' : 's'} exceeding ${formatBytes(MAX_AUDIO_TOTAL_BYTES)} total`
+    );
+  }
+
+  if (!issues.length) return;
+  const message = `${sourceLabel}: ${issues.join('; ')}.`;
+  alert(message);
+  announce(message);
+}
+
+function setScriptFileIfValid(file) {
+  const validation = validateScriptPdfFile(file);
+  if (!validation.valid) {
+    alert(validation.message);
+    announce(validation.message);
+    return false;
+  }
+
+  scriptFile = file;
+  scriptFileName.textContent = 'PDF ' + scriptFile.name;
+  announce(`Selected script file ${scriptFile.name}.`);
+  return true;
+}
+
 export function initUpload() {
   // Back button
   btnBackUpload.addEventListener('click', () => {
@@ -313,40 +410,60 @@ export function initUpload() {
   inputScript.addEventListener('change', () => {
     const files = getFilesFromInput(inputScript);
     if (files.length > 0) {
-      scriptFile = files[0];
-      scriptFileName.textContent = '📄 ' + scriptFile.name;
-      announce(`Selected script file ${scriptFile.name}.`);
+      const ok = setScriptFileIfValid(files[0]);
+      if (!ok) inputScript.value = '';
     }
   });
 
   setupDropZone(dropZoneScript, (files) => {
-    const pdf = files.find(f => f.name.toLowerCase().endsWith('.pdf'));
+    const pdf = files.find((f) => getFileExtension(f.name || '') === '.pdf');
     if (pdf) {
-      scriptFile = pdf;
-      scriptFileName.textContent = '📄 ' + scriptFile.name;
-      announce(`Selected script file ${scriptFile.name}.`);
+      setScriptFileIfValid(pdf);
+    } else if (files.length > 0) {
+      const message = 'Script must be a PDF file.';
+      alert(message);
+      announce(message);
     }
   });
 
   // Guide vocals upload
   const handleGuideFiles = (files) => {
-    const parsed = parseAudioFiles(files);
-    const incomingCount = parsed.length;
+    const { parsed, rejectedUnsupported } = parseAudioFiles(files);
+    let rejectedOversized = 0;
+    let rejectedOverTotal = 0;
+    let acceptedCount = 0;
+
     // Merge, replacing duplicates by track number
     for (const p of parsed) {
+      const size = getFileSize(p.file);
+      if (size > MAX_AUDIO_FILE_BYTES) {
+        rejectedOversized++;
+        continue;
+      }
+
       const existingIdx = guideFiles.findIndex(g => g.trackNumber === p.trackNumber && p.trackNumber > 0);
+      const replacedSize = existingIdx >= 0 ? getFileSize(guideFiles[existingIdx].file) : 0;
+      const projectedTotal = getAudioTotalBytes() - replacedSize + size;
+      if (projectedTotal > MAX_AUDIO_TOTAL_BYTES) {
+        rejectedOverTotal++;
+        continue;
+      }
+
       if (existingIdx >= 0) {
         guideFiles[existingIdx] = p;
       } else {
         guideFiles.push(p);
       }
+      acceptedCount++;
     }
+
     guideFiles.sort((a, b) => a.trackNumber - b.trackNumber);
     renderFileList(guideFileList, guideFiles, 'guide');
     autoMatch();
-    if (incomingCount > 0) {
-      announce(`Added ${incomingCount} guide track${incomingCount === 1 ? '' : 's'}.`);
+    if (acceptedCount > 0) {
+      announce('Added ' + acceptedCount + ' guide track' + (acceptedCount === 1 ? '' : 's') + '.');
     }
+    notifyAudioValidationIssues('Guide upload', rejectedUnsupported.length, rejectedOversized, rejectedOverTotal);
   };
 
   inputGuideFiles.addEventListener('change', () => handleGuideFiles(getFilesFromInput(inputGuideFiles)));
@@ -357,22 +474,41 @@ export function initUpload() {
 
   // Accompaniment upload
   const handleAccompFiles = (files) => {
-    const parsed = parseAudioFiles(files);
-    const incomingCount = parsed.length;
+    const { parsed, rejectedUnsupported } = parseAudioFiles(files);
+    let rejectedOversized = 0;
+    let rejectedOverTotal = 0;
+    let acceptedCount = 0;
+
     for (const p of parsed) {
+      const size = getFileSize(p.file);
+      if (size > MAX_AUDIO_FILE_BYTES) {
+        rejectedOversized++;
+        continue;
+      }
+
       const existingIdx = accompFiles.findIndex(a => a.trackNumber === p.trackNumber && p.trackNumber > 0);
+      const replacedSize = existingIdx >= 0 ? getFileSize(accompFiles[existingIdx].file) : 0;
+      const projectedTotal = getAudioTotalBytes() - replacedSize + size;
+      if (projectedTotal > MAX_AUDIO_TOTAL_BYTES) {
+        rejectedOverTotal++;
+        continue;
+      }
+
       if (existingIdx >= 0) {
         accompFiles[existingIdx] = p;
       } else {
         accompFiles.push(p);
       }
+      acceptedCount++;
     }
+
     accompFiles.sort((a, b) => a.trackNumber - b.trackNumber);
     renderFileList(accompFileList, accompFiles, 'accomp');
     autoMatch();
-    if (incomingCount > 0) {
-      announce(`Added ${incomingCount} accompaniment track${incomingCount === 1 ? '' : 's'}.`);
+    if (acceptedCount > 0) {
+      announce('Added ' + acceptedCount + ' accompaniment track' + (acceptedCount === 1 ? '' : 's') + '.');
     }
+    notifyAudioValidationIssues('Accompaniment upload', rejectedUnsupported.length, rejectedOversized, rejectedOverTotal);
   };
 
   inputAccompFiles.addEventListener('change', () => handleAccompFiles(getFilesFromInput(inputAccompFiles)));
@@ -411,6 +547,14 @@ export function initUpload() {
 async function handleSave() {
   const name = inputName.value.trim();
   if (!name) return;
+  if (scriptFile) {
+    const scriptValidation = validateScriptPdfFile(scriptFile);
+    if (!scriptValidation.valid) {
+      alert(scriptValidation.message);
+      announce(scriptValidation.message);
+      return;
+    }
+  }
 
   showLoading('Saving your performance...');
 

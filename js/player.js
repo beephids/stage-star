@@ -2,16 +2,29 @@ import { getSong, getPerformance, updateSong } from './db.js';
 import { navigateTo, announce } from './app.js';
 import { showSongs } from './songs.js';
 
-/* ── WaveSurfer dynamic import (ESM from CDN) ───────────── */
+/* ── WaveSurfer dynamic import (prefer local vendor, fallback to pinned CDN) ───────────── */
 
 let WaveSurfer = null;
 let RegionsPlugin = null;
+const LOCAL_WAVESURFER_URL = '../vendor/wavesurfer/wavesurfer.esm.js';
+const LOCAL_REGIONS_URL = '../vendor/wavesurfer/regions.esm.js';
+const CDN_WAVESURFER_URL = 'https://unpkg.com/wavesurfer.js@7.8.11/dist/wavesurfer.esm.js';
+const CDN_REGIONS_URL = 'https://unpkg.com/wavesurfer.js@7.8.11/dist/plugins/regions.esm.js';
+
+async function importLocalOrPinned(localUrl, pinnedCdnUrl) {
+  try {
+    return await import(localUrl);
+  } catch (localErr) {
+    console.warn(`Failed to load local module ${localUrl}. Falling back to pinned CDN.`, localErr);
+    return import(pinnedCdnUrl);
+  }
+}
 
 async function loadWaveSurfer() {
   if (WaveSurfer) return;
-  const ws = await import('https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js');
+  const ws = await importLocalOrPinned(LOCAL_WAVESURFER_URL, CDN_WAVESURFER_URL);
   WaveSurfer = ws.default;
-  const regions = await import('https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.js');
+  const regions = await importLocalOrPinned(LOCAL_REGIONS_URL, CDN_REGIONS_URL);
   RegionsPlugin = regions.default;
 }
 
@@ -758,11 +771,17 @@ export function destroyPlayer() {
 
 /* ── Script Viewer ───────────────────────────────────────── */
 
+function openNoOpenerTab(url = 'about:blank') {
+  const openedTab = window.open(url, '_blank', 'noopener,noreferrer');
+  if (openedTab) openedTab.opener = null;
+  return openedTab;
+}
+
 async function openScriptFromPlayer() {
   if (!currentSongData?.performanceId) return;
 
   // Open the tab immediately in the user gesture to avoid popup blocking.
-  const scriptTab = window.open('about:blank', '_blank');
+  const scriptTab = openNoOpenerTab('about:blank');
   const performance = await getPerformance(currentSongData.performanceId);
   if (!performance?.scriptPdf) {
     if (scriptTab) scriptTab.close();
@@ -779,7 +798,7 @@ async function openScriptFromPlayer() {
   if (scriptTab) {
     scriptTab.location.href = scriptUrl;
   } else {
-    window.open(scriptUrl, '_blank');
+    openNoOpenerTab(scriptUrl);
   }
   announce('Opened script in a new tab.');
 }

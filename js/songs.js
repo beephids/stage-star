@@ -281,10 +281,16 @@ async function openCurrentPerformanceEditor() {
   }
 }
 
+function openNoOpenerTab(url = 'about:blank') {
+  const openedTab = window.open(url, '_blank', 'noopener,noreferrer');
+  if (openedTab) openedTab.opener = null;
+  return openedTab;
+}
+
 async function openScript() {
   if (!currentPerformanceId) return;
 
-  const scriptTab = window.open('about:blank', '_blank');
+  const scriptTab = openNoOpenerTab('about:blank');
   const performance = await getPerformance(currentPerformanceId);
   if (!performance?.scriptPdf) {
     if (scriptTab) scriptTab.close();
@@ -299,7 +305,7 @@ async function openScript() {
   if (scriptTab) {
     scriptTab.location.href = url;
   } else {
-    window.open(url, '_blank');
+    openNoOpenerTab(url);
   }
   announce('Opened script in a new tab.');
 }
