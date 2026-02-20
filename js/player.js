@@ -77,6 +77,7 @@ function getInactive() {
 }
 
 const LOOP_PRESET_TOLERANCE = 0.05;
+const LOOP_PRESET_NAME_MAX_LENGTH = 60;
 
 function isValidLoopRange(start, end) {
   return start !== null && end !== null && !isNaN(start) && !isNaN(end) && start < end;
@@ -114,6 +115,12 @@ function isLoopPresetActive(preset) {
 
 function getLoopPresetLabel(preset) {
   return `${preset.name} · ${formatTime(preset.start)} - ${formatTime(preset.end)}`;
+}
+
+function normalizeLoopPresetName(name) {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) return '';
+  return trimmed.slice(0, LOOP_PRESET_NAME_MAX_LENGTH);
 }
 
 function updateLoopPointLabels() {
@@ -156,6 +163,14 @@ function renderLoopPresets() {
       `Apply ${preset.name}, from ${formatTime(preset.start)} to ${formatTime(preset.end)}`
     );
 
+    const renameBtn = document.createElement('button');
+    renameBtn.type = 'button';
+    renameBtn.className = 'loop-preset-rename';
+    renameBtn.dataset.renameLoopPreset = preset.id;
+    renameBtn.title = 'Rename loop preset';
+    renameBtn.setAttribute('aria-label', `Rename loop preset ${preset.name}`);
+    renameBtn.textContent = 'Rename';
+
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.className = 'loop-preset-delete';
@@ -165,6 +180,7 @@ function renderLoopPresets() {
     delBtn.textContent = 'X';
 
     row.appendChild(selectBtn);
+    row.appendChild(renameBtn);
     row.appendChild(delBtn);
     loopPresetsList.appendChild(row);
   });
@@ -259,8 +275,41 @@ async function deleteLoopPreset(presetId) {
   }
 }
 
-/* ── Sync ────────────────────────────────────────────────── */
+/* Loop preset updates */
 
+
+async function renameLoopPreset(presetId) {
+  const preset = loopPresets.find((item) => item.id === presetId);
+  if (!preset) return;
+
+  const proposed = window.prompt('Rename loop preset:', preset.name);
+  if (proposed === null) return;
+  const nextName = normalizeLoopPresetName(proposed);
+  if (!nextName) {
+    alert('Loop preset name cannot be empty.');
+    return;
+  }
+  if (nextName === preset.name) return;
+
+  const previousPresets = loopPresets;
+  loopPresets = loopPresets.map((item) => (
+    item.id === presetId
+      ? { ...item, name: nextName }
+      : item
+  ));
+
+  try {
+    await persistLoopPresets();
+    renderLoopPresets();
+    announce(`Renamed loop preset to ${nextName}.`);
+  } catch (err) {
+    loopPresets = previousPresets;
+    console.error('Failed to rename loop preset:', err);
+    alert('Could not rename loop preset. Please try again.');
+  }
+}
+
+/* Sync */
 function syncCursors() {
   if (isSeeking) return;
   const active = getActive();
@@ -753,6 +802,15 @@ export function initPlayer() {
   }
   if (loopPresetsList) {
     loopPresetsList.addEventListener('click', async (e) => {
+      const renameBtn = e.target.closest('[data-rename-loop-preset]');
+      if (renameBtn) {
+        const presetId = renameBtn.dataset.renameLoopPreset;
+        if (presetId) {
+          await renameLoopPreset(presetId);
+        }
+        return;
+      }
+
       const delBtn = e.target.closest('[data-delete-loop-preset]');
       if (delBtn) {
         const presetId = delBtn.dataset.deleteLoopPreset;

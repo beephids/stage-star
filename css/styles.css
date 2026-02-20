@@ -597,16 +597,29 @@ input:focus-visible,
   color: var(--color-accent);
 }
 
+.loop-preset-rename,
 .loop-preset-delete {
   width: 34px;
   height: 34px;
   border: none;
   border-radius: 8px;
-  background: #fee2e2;
-  color: var(--color-red);
   font-size: 0.9rem;
   font-weight: 900;
   cursor: pointer;
+}
+
+.loop-preset-rename {
+  width: auto;
+  min-width: 64px;
+  padding: 0 10px;
+  background: #eef2ff;
+  color: var(--color-primary-dark);
+  font-size: 0.78rem;
+}
+
+.loop-preset-delete {
+  background: #fee2e2;
+  color: var(--color-red);
 }
 
 /* === Upload === */
